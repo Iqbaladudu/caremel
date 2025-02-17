@@ -17,8 +17,8 @@ export default async function NewAppointment({params: {userId}}: SearchParamProp
                         className="mb-12 h-10 w-fit"
                     />
 
-                    <AppointmentForm type={"create"} userId={userId}/>
-                    <p className="justify-items-end text-dark-600 xl:text-left">
+                    <AppointmentForm type={"create"} userId={userId} patientId={patient.id}/>
+                    <p className="copyright mt-10 py-12">
                         © 2025 CareMel
                     </p>
 

@@ -5,11 +5,14 @@ import {useForm} from "react-hook-form";
 import {z} from "zod";
 import {Form} from "../ui/form";
 import CustomFormField from "../CustomFormField";
-import SubmitButton from "../SubmitButton";
 import {useState} from "react";
-import {UserFormValidation} from "@/lib/validation";
 import {useRouter} from "next/navigation";
-import {createUser} from "@/lib/actions/patient.actions";
+import {Doctors} from "@/constant";
+import {SelectItem} from "@/components/ui/select";
+import Image from "next/image";
+import SubmitButton from "@/components/SubmitButton";
+import {createAppointment} from "@/lib/actions/appointment.actions";
+import {getAppointmentSchema} from "@/lib/validation";
 
 export enum FormFieldType {
     INPUT = "input",
@@ -21,31 +24,59 @@ export enum FormFieldType {
     SKELETON = "skeleton",
 }
 
-export default function AppointmentForm() {
+export default function AppointmentForm({
+                                            userId, patientId, type
+                                        }: {
+    userId: string,
+    patientId: string,
+    type: "create" | "cancel" | "schedule"
+}) {
     const router = useRouter();
     const [isLoading, setIsloading] = useState(false);
-    const form = useForm<z.infer<typeof UserFormValidation>>({
-        resolver: zodResolver(UserFormValidation),
+    const AppointmentFormValidation = getAppointmentSchema(type)
+    const form = useForm<z.infer<typeof AppointmentFormValidation>>({
+        resolver: zodResolver(AppointmentFormValidation),
         defaultValues: {
-            name: "",
-            email: "",
-            phone: "",
+            primaryPhysician: "",
+            schedule: "",
+            reason: "",
+            notes: "",
+            cancellationReason: "",
         },
     });
 
-    const onSubmit = async (values: z.infer<typeof UserFormValidation>) => {
+    const onSubmit = async (values: z.infer<typeof AppointmentFormValidation>) => {
         setIsloading(true);
 
-        try {
-            const userData = {
-                name: values.name,
-                email: values.email,
-                phone: values.phone,
-            };
+        let status;
+        switch (type) {
+            case "schedule":
+                status = "scheduled";
+                break;
+            case "cancel":
+                status = "cancelled";
+                break;
+            default:
+                status = "pending"
+                break;
+        }
 
-            const user = await createUser(userData);
-            if (user) {
-                router.push(`/patients/${user.$id}/register`);
+        try {
+            if (type === "create") {
+                const appointmentData = {
+                    userId, patient: patientId, primaryPhysician: values.primaryPhysician,
+                    schedule: new Date(values.schedule),
+                    reason: values.reason!,
+                    note: values.note,
+                    status: status as Status,
+                }
+
+                const appointment = await createAppointment(appointmentData);
+
+                if (appointment) {
+                    form.reset();
+                    router.push(`/patients/${userId}/new-appointment/success?appointmentId=${appointment.$id}`);
+                }
             }
         } catch (err) {
             console.log(err);
@@ -54,6 +85,22 @@ export default function AppointmentForm() {
         setIsloading(false);
     };
 
+    let buttonLabel;
+
+    switch (type) {
+        case "cancel":
+            buttonLabel = "Cancel Appointment";
+            break;
+        case "create":
+            buttonLabel = "Create Appointment";
+            break;
+        case "schedule":
+            buttonLabel = "Schedule Appointment";
+            break;
+        default:
+            break
+    }
+
     return (
         <Form {...form}>
             <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-8 flex-1">
@@ -61,32 +108,48 @@ export default function AppointmentForm() {
                     <h1 className="header">New Appointment</h1>
                     <p>Request a new appointment in seconds</p>
                 </section>
-                <CustomFormField
-                    control={form.control}
-                    fieldType={FormFieldType.INPUT}
-                    name="name"
-                    label="Full name"
-                    placeholder="John Doe"
-                    iconSrc="/assets/icons/user.svg"
-                    iconAlt="user"
-                />
-                <CustomFormField
-                    control={form.control}
-                    fieldType={FormFieldType.INPUT}
-                    name="email"
-                    label="Email"
-                    placeholder="iqbal.adudu@gmail.com"
-                    iconSrc="/assets/icons/email.svg"
-                    iconAlt="email"
-                />
-                <CustomFormField
-                    control={form.control}
-                    fieldType={FormFieldType.PHONE_INPUT}
-                    name="phone"
-                    label="Phone number"
-                    placeholder="6281364534232"
-                />
-                <SubmitButton isLoading={isLoading}>Get Started</SubmitButton>
+                {type !== "cancel" && (
+                    <>
+                        <CustomFormField fieldType={FormFieldType.SELECT} control={form.control}
+                                         name={"primaryPhysician"}
+                                         label={"Doctor"}
+                                         placeholder={"Select a doctor"}>
+
+                            {Doctors.map((doctor) => (
+                                <SelectItem key={doctor.name} value={doctor.name}>
+                                    <div className="flex cursor-pointer items-center gap-2">
+                                        <Image
+                                            src={doctor.image}
+                                            width={32}
+                                            height={32}
+                                            alt={doctor.name}
+                                            className=" rounded-full border border-dark-500"
+                                        />
+                                        <p>{doctor.name}</p>
+                                    </div>
+                                </SelectItem>
+                            ))}
+                        </CustomFormField>
+                    </>
+                )}
+
+                <CustomFormField control={form.control} fieldType={FormFieldType.DATE_PICKER} name="schedule"
+                                 label={"Expected appointment date"} showTimeSelect dateFormat={"MM/dd/yy - h:mm aa"}/>
+
+                <div className={"flex flex-col gap-6 xl:flex-row"}>
+                    <CustomFormField control={form.control} fieldType={FormFieldType.TEXTAREA} name={"reason"}
+                                     label={"Reason for appointment"} placeholder={"Enter reason for appointment"}/>
+                    <CustomFormField control={form.control} fieldType={FormFieldType.TEXTAREA} name={"notes"}
+                                     label={"Notes"} placeholder={"Enter notes"}/>
+                </div>
+
+                {type === "cancel" && (
+                    <CustomFormField control={form.control} fieldType={FormFieldType.TEXTAREA}
+                                     name={"cancellationReason"}
+                                     label={"Reason for cancellation"} placeholder={"Enter reason for cancellation"}/>
+                )}
+                <SubmitButton isLoading={isLoading}
+                              className={`${type === "cancel" ? "shad-danger-btn" : "shad-primary-btn"}`}>{buttonLabel}</SubmitButton>
             </form>
         </Form>
     );
