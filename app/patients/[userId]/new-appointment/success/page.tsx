@@ -41,7 +41,7 @@ export default async function Success({params: {userId}, searchParams}: SearchPa
                     <div className={"flex gap-2"}>
                         <Image src={"/assets/icons/calendar.svg"} alt={"calendar"} height={24} width={24}/>
                         <p>
-                            {formatDateTime(appointment.schedule).dateTime}
+                            {formatDateTime(appointment.schedule, timeZone).dateTime}
                         </p>
                     </div>
                 </section>
