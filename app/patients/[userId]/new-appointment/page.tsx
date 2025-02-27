@@ -1,6 +1,7 @@
 import Image from "next/image";
-import AppointmentForm from "@/components/forms/AppointmentForm";
+import {AppointmentForm} from "@/components/forms/AppointmentForm";
 import {getPatient} from "@/lib/actions/patient.actions";
+import {SearchParamProps} from "@/types";
 
 export default async function NewAppointment({params: {userId}}: SearchParamProps) {
     const patient = await getPatient(userId)
@@ -17,7 +18,7 @@ export default async function NewAppointment({params: {userId}}: SearchParamProp
                         className="mb-12 h-10 w-fit"
                     />
 
-                    <AppointmentForm type={"create"} userId={userId} patientId={patient.id}/>
+                    <AppointmentForm type={"create"} userId={userId} patientId={patient.$id}/>
                     <p className="copyright mt-10 py-12">
                         © 2025 CareMel
                     </p>

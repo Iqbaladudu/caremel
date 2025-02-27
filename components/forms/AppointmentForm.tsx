@@ -16,10 +16,10 @@ import {Appointment} from "@/types/appwrite.type";
 import "react-datepicker/dist/react-datepicker.css";
 
 import CustomFormField from "../CustomFormField";
-import {FormFieldType} from "../forms/PatientForm";
 import SubmitButton from "../SubmitButton";
 import {Form} from "../ui/form";
 import {Status} from "@/types";
+import {FormFieldType} from "@/components/forms/PatientForm";
 
 export const AppointmentForm = ({
                                     userId,
@@ -32,7 +32,7 @@ export const AppointmentForm = ({
     patientId: string;
     type: "create" | "schedule" | "cancel";
     appointment?: Appointment;
-    setOpen: Dispatch<SetStateAction<boolean>>;
+    setOpen?: Dispatch<SetStateAction<boolean>>;
 }) => {
     const router = useRouter();
     const [isLoading, setIsLoading] = useState(false);
@@ -92,7 +92,7 @@ export const AppointmentForm = ({
             } else {
                 const appointmentToUpdate = {
                     userId,
-                    appointmentId: appointment!.$id!,
+                    appointmentId: appointment!.$id,
                     appointment: {
                         primaryPhysician: values.primaryPhysician,
                         schedule: new Date(values.schedule),
@@ -105,7 +105,8 @@ export const AppointmentForm = ({
                 const updatedAppointment = await updateAppointment(appointmentToUpdate);
 
                 if (updatedAppointment) {
-                    setOpen(false);
+                    // eslint-disable-next-line @typescript-eslint/no-unused-expressions
+                    setOpen && setOpen(false);
                     form.reset();
                 }
             }
@@ -124,7 +125,7 @@ export const AppointmentForm = ({
             buttonLabel = "Schedule Appointment";
             break;
         default:
-            buttonLabel = "Submit Appointment";
+            buttonLabel = "Submit Apppointment";
     }
 
     return (
